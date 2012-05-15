@@ -3,60 +3,60 @@ require 'active_support/builder' unless defined?(Builder)
 
 class FastSpring
   @test_mode = false
-  
+
   def test_mode?
     @test_mode
   end
-  
+
   def test_mode=(mode)
     @test_mode = true
   end
-  
+
   def initialize(store_id, api_username, api_password)
     @auth = { :username => api_username, :password => api_password }
     @store_id = store_id
   end
-  
+
   def create_subscription(product_ref, referrer)
-    url = "http://sites.fastspring.com/" <<  @store_id << "/product/" << product_ref << "?referrer=" << referrer;
+    url = "http://sites.fastspring.com/" <<  @store_id << "/instant/" << product_ref << "?referrer=" << referrer;
     url = add_test_mode(url)
   end
-  
+
   def get_subscription(subscription_ref)
     url = subscription_url(subscription_ref)
-    
+
     options = { :basic_auth => @auth }
     response = HTTParty.get(url, options)
-    
+
     if response.code == 200
       sub = parse_subscription(response.parsed_response.fetch('subscription'))
     else
       exception = FsprgException.new(response.code, nil)
       raise exception, "An error occurred calling the FastSpring subscription service", caller
     end
-    
+
     sub
   end
-  
+
   def update_subscription(subscription_update)
     url = subscription_url(subscription_update.reference)
-    
+
     options = { :headers => { 'Content-Type' => 'application/xml' }, :body => subscription_update.to_xml, :basic_auth => @auth }
     response = HTTParty.put(url, options)
-    
+
     if response.code == 200
       sub = parse_subscription(response.parsed_response.fetch('subscription'))
     else
       exception = FsprgException.new(response.code, nil)
       raise exception, "An error occurred calling the FastSpring subscription service", caller
     end
-    
+
     sub
   end
-  
+
   def cancel_subscription(subscription_ref)
     url = subscription_url(subscription_ref)
-    
+
     options = { :basic_auth => @auth }
     response = HTTParty.delete(url, options)
 
@@ -66,10 +66,10 @@ class FastSpring
       exception = FsprgException.new(response.code, nil)
       raise exception, "An error occurred calling the FastSpring subscription service", caller
     end
-    
+
     sub
   end
-  
+
   def renew_subscription(subscription_ref)
     url = subscription_url(subscription_ref, { :postfix => "/renew" })
 
@@ -81,12 +81,12 @@ class FastSpring
       raise exception, "An error occurred calling the FastSpring subscription service", caller
     end
   end
-  
+
   private
-  
+
   def subscription_url(reference, *options)
     url = "https://api.fastspring.com/company/#{@store_id}/subscription/#{reference}"
-    
+
     unless options.nil? || options.length == 0
       opt = options[0]
       if opt.has_key?(:postfix)
@@ -102,10 +102,10 @@ class FastSpring
         end
       end
     end
-    
+
     url = add_test_mode(url)
   end
-  
+
   def add_test_mode(url)
     if @test_mode
       if url.include? "?"
@@ -114,13 +114,13 @@ class FastSpring
         url = url << "?mode=test"
       end
     end
-    
+
     url
   end
-  
+
   def parse_subscription(response)
     sub = FsprgSubscription.new
-    
+
     sub.status = response.fetch('status', 'error')
     status_changed = response.fetch("statusChanged", nil)
     if not status_changed.nil?
@@ -130,18 +130,18 @@ class FastSpring
     sub.cancelable = response.fetch("cancelable", nil)
     sub.reference = response.fetch("reference", nil)
     sub.test = response.fetch("test", nil)
-    
+
     customer = FsprgCustomer.new;
     custResponse = response.fetch("customer")
-    
+
     customer.first_name = custResponse.fetch("firstName", nil)
     customer.last_name = custResponse.fetch("lastName", nil)
     customer.company = custResponse.fetch("company", nil)
     customer.email = custResponse.fetch("email", nil)
     customer.phone_number = custResponse.fetch("phoneNumber", nil)
-    
+
     sub.customer = customer;
-    
+
     sub.customer_url = response.fetch("customerUrl", nil)
     sub.product_name = response.fetch("productName", nil)
     sub.tags = response.fetch("tags", nil)
@@ -154,7 +154,7 @@ class FastSpring
     if not end_date.nil?
       sub.end_date = Date.parse(end_date)
     end
-          
+
     sub
   end
 end
@@ -166,17 +166,17 @@ end
 
 class FsprgSubscriptionUpdate
   attr_accessor :reference, :product_path, :quantity, :tags, :coupon, :no_end_date, :proration
-  
+
   def initialize(subscription_ref)
     @reference = subscription_ref
   end
-  
+
   def to_xml
     xml = Builder::XmlMarkup.new
     xml.instruct!
-    
+
     xml.subscription {
-    
+
       unless product_path.nil? || product_path.empty?
         xml.productPath(product_path)
       end
@@ -200,7 +200,7 @@ class FsprgSubscriptionUpdate
         end
       end
     }
-    
+
     xml.target!
   end
 end
@@ -214,11 +214,11 @@ class FsprgException < RuntimeError
     @http_status_code = http_status_code
     @error_code = error_code
   end
-  
+
   def http_status_code
     @http_status_code
   end
-  
+
   def error_code
     @error_code
   end
