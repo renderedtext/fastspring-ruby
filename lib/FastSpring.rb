@@ -18,7 +18,7 @@ class FastSpring
   end
 
   def create_subscription(product_ref, referrer)
-    url = "http://sites.fastspring.com/" <<  @store_id << "/instant/" << product_ref << "?referrer=" << referrer;
+    url = "https://sites.fastspring.com/" <<  @store_id << "/instant/" << product_ref << "?referrer=" << referrer;
     url = add_test_mode(url)
   end
 
